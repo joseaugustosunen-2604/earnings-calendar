@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Earnings Calendar — Wall Street</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #111118;
+    --bg3: #18181f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #f0f0f5;
+    --muted: #7a7a90;
+    --accent: #6c63ff;
+    --accent2: #4ade80;
+    --red: #f87171;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --blue: #60a5fa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* TOP BAR */
+  .topbar { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 2rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .logo { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .last-update { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* MAIN */
+  .main { padding: 2rem; max-width: 1400px; margin: 0 auto; }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .stat-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; font-family: 'DM Mono', monospace; }
+  .stat-val { font-size: 24px; font-weight: 600; color: var(--text); font-family: 'DM Mono', monospace; }
+  .stat-val.green { color: var(--green); }
+  .stat-val.red { color: var(--red); }
+
+  /* FILTERS */
+  .filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; align-items: center; }
+  .filters input, .filters select {
+    background: var(--bg2); border: 1px solid var(--border2); color: var(--text);
+    border-radius: 8px; padding: 8px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    outline: none; height: 38px; transition: border 0.2s;
+  }
+  .filters input:focus, .filters select:focus { border-color: var(--accent); }
+  .filters input { width: 220px; }
+  .filters input::placeholder { color: var(--muted); }
+  .filters select option { background: var(--bg3); }
+  .btn { background: var(--bg2); border: 1px solid var(--border2); color: var(--text); border-radius: 8px; padding: 0 16px; height: 38px; font-size: 13px; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--bg3); border-color: var(--accent); color: var(--accent); }
+  .btn-refresh { background: var(--accent); border-color: var(--accent); color: white; }
+  .btn-refresh:hover { background: #5a52e0; border-color: #5a52e0; color: white; }
+
+  /* LEGEND */
+  .legend { display: flex; gap: 16px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
+  .ldot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* TABLE */
+  .table-wrap { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th {
+    padding: 10px 14px; text-align: left; font-size: 10px; font-weight: 500;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+    text-transform: uppercase; letter-spacing: 0.06em; cursor: pointer;
+    font-family: 'DM Mono', monospace; white-space: nowrap; background: var(--bg3);
+    user-select: none;
+  }
+  thead th:hover { color: var(--text); }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--bg3); }
+  tbody td { padding: 12px 14px; vertical-align: middle; }
+
+  .ticker { font-family: 'DM Mono', monospace; font-weight: 500; font-size: 13px; color: var(--text); }
+  .co-name { font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+
+  .badge { display: inline-flex; align-items: center; font-size: 10px; padding: 2px 8px; border-radius: 20px; font-weight: 500; font-family: 'DM Mono', monospace; }
+  .badge-pre { background: rgba(96,165,250,0.12); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+  .badge-post { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+  .badge-mid { background: rgba(251,191,36,0.1); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-tbd { background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--border); }
+
+  .up { color: var(--green); font-family: 'DM Mono', monospace; font-size: 13px; }
+  .down { color: var(--red); font-family: 'DM Mono', monospace; font-size: 13px; }
+  .neutral-val { color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  .eps-block { display: flex; flex-direction: column; gap: 2px; }
+  .eps-main { font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); }
+  .eps-sub { font-size: 10px; color: var(--muted); }
+  .sent-bull { color: var(--green); font-size: 11px; }
+  .sent-bear { color: var(--red); font-size: 11px; }
+  .sent-neut { color: var(--muted); font-size: 11px; }
+
+  .var-block { display: flex; flex-direction: column; gap: 4px; }
+  .var-row { display: flex; align-items: center; gap: 6px; font-size: 11px; font-family: 'DM Mono', monospace; }
+  .var-pos { color: var(--green); }
+  .var-neg { color: var(--red); }
+
+  .today-row { background: rgba(108,99,255,0.04); }
+  .today-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: var(--accent); background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25); border-radius: 20px; padding: 1px 7px; margin-left: 6px; font-family: 'DM Mono', monospace; }
+
+  /* PAGINATION */
+  .pager { display: flex; align-items: center; gap: 8px; padding: 1rem 0; }
+  .pager-info { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .pager-count { margin-left: auto; font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+
+  /* LOADING / ERROR */
+  .state-msg { text-align: center; padding: 4rem 2rem; color: var(--muted); font-size: 14px; }
+  .spinner { display: inline-block; width: 20px; height: 20px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error-msg { color: var(--red); }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .main { padding: 1rem; }
+    .topbar { padding: 0 1rem; }
+    table { font-size: 12px; }
+    tbody td { padding: 10px 8px; }
+    thead th { padding: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <span class="logo-dot"></span>
+    EARNINGS CALENDAR — WALL STREET
+  </div>
+  <div class="topbar-right">
+    <span class="last-update" id="lastUpdate">—</span>
+  </div>
+</div>
+
+<div class="main">
+
+  <div class="stats" id="statsBar">
+    <div class="stat"><div class="stat-label">Estado</div><div class="stat-val" style="font-size:14px;">Cargando...</div></div>
+  </div>
+
+  <div class="filters">
+    <input type="text" id="search" placeholder="Buscar ticker o empresa..." oninput="renderTable()">
+    <select id="rangeFilter" onchange="loadData()">
+      <option value="week">Esta semana</option>
+      <option value="next">Próxima semana</option>
+      <option value="month" selected>Próximos 30 días</option>
+      <option value="quarter">Próximos 90 días</option>
+    </select>
+    <button class="btn btn-refresh" onclick="loadData()">↻ Actualizar</button>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="ldot" style="background:var(--green)"></div> Batió estimaciones</div>
+    <div class="legend-item"><div class="ldot" style="background:var(--red)"></div> Decepcionó estimaciones</div>
+    <div class="legend-item"><span class="badge badge-pre">PRE</span> Antes apertura</div>
+    <div class="legend-item"><span class="badge badge-post">POST</span> Tras cierre</div>
+    <div class="legend-item"><span class="badge badge-mid">MID</span> En mercado</div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th onclick="sortBy('symbol')" style="width:160px;">Empresa ↕</th>
+          <th onclick="sortBy('date')" style="width:120px;">Fecha ↕</th>
+          <th style="width:70px;">Hora</th>
+          <th onclick="sortBy('lastMove')" style="width:100px;">Últ. reacción ↕</th>
+          <th style="width:150px;">Expectativa (EPS / Rev)</th>
+          <th style="width:150px;">Variación estimada</th>
+          <th onclick="sortBy('symbol')" style="width:70px;">Sector</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <tr><td colspan="7"><div class="state-msg"><div class="spinner"></div><br>Conectando con Finnhub...</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pager">
+    <button class="btn" onclick="prevPage()">← Anterior</button>
+    <span class="pager-info" id="pageInfo">Pág. 1 de 1</span>
+    <button class="btn" onclick="nextPage()">Siguiente →</button>
+    <span class="pager-count" id="countInfo"></span>
+  </div>
+
+</div>
+
+<script>
+const API_KEY = 'd86886pr01qnvdehduvgd86886pr01qnvdehdv00';
+const PER_PAGE = 20;
+let page = 1;
+let sortKey = 'date';
+let sortAsc = true;
+let allData = [];
+
+const SECTORS = {
+  NVDA:'Tech', AAPL:'Tech', MSFT:'Tech', GOOGL:'Tech', META:'Tech', AMZN:'Tech',
+  TSLA:'Auto', AMD:'Tech', INTC:'Tech', AVGO:'Tech', CRM:'Tech', SNOW:'Tech',
+  PANW:'Tech', NFLX:'Tech', DIS:'Media', MU:'Tech', ORCL:'Tech',
+  JPM:'Finance', GS:'Finance', BAC:'Finance', V:'Finance', MA:'Finance',
+  JNJ:'Health', UNH:'Health', PFE:'Health',
+  WMT:'Retail', COST:'Retail', TGT:'Retail',
+  XOM:'Energy', CVX:'Energy'
+};
+
+function getRange() {
+  const v = document.getElementById('rangeFilter').value;
+  const today = new Date();
+  const from = today.toISOString().split('T')[0];
+  const to = new Date(today);
+  if (v === 'week') to.setDate(today.getDate() + 7);
+  else if (v === 'next') { today.setDate(today.getDate() + 7); to.setDate(today.getDate() + 14); }
+  else if (v === 'month') to.setDate(today.getDate() + 30);
+  else to.setDate(today.getDate() + 90);
+  return { from, to: to.toISOString().split('T')[0] };
+}
+
+function fmtDate(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'2-digit' });
+}
+
+function timeBadge(t) {
+  if (!t) return '<span class="badge badge-tbd">TBD</span>';
+  const tl = t.toLowerCase();
+  if (tl === 'bmo' || tl.includes('before')) return '<span class="badge badge-pre">PRE</span>';
+  if (tl === 'amc' || tl.includes('after')) return '<span class="badge badge-post">POST</span>';
+  if (tl === 'dmh' || tl.includes('during')) return '<span class="badge badge-mid">MID</span>';
+  return '<span class="badge badge-tbd">TBD</span>';
+}
+
+function getVariation(lastMove) {
+  if (lastMove == null) return { pos: '—', neg: '—' };
+  const base = Math.max(3, Math.min(Math.abs(lastMove) * 0.9, 18));
+  return { pos: '+' + base.toFixed(1) + '%', neg: '-' + (base * 0.75).toFixed(1) + '%' };
+}
+
+function getSentiment(epsEst, epsActual) {
+  if (epsActual == null || epsEst == null) return 'neutral';
+  if (epsActual > epsEst * 1.02) return 'bullish';
+  if (epsActual < epsEst * 0.98) return 'bearish';
+  return 'neutral';
+}
+
+async function loadData() {
+  document.getElementById('tableBody').innerHTML = '<tr><td colspan="7"><div class="state-msg"><div class="spinner"></div><br>Cargando datos de Finnhub...</div></td></tr>';
+  document.getElementById('statsBar').innerHTML = '<div class="stat"><div class="stat-label">Estado</div><div class="stat-val" style="font-size:14px;">Cargando...</div></div>';
+
+  const { from, to } = getRange();
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${API_KEY}`);
+    if (!res.ok) throw new Error('Error HTTP: ' + res.status);
+    const json = await res.json();
+    const earnings = json.earningsCalendar || [];
+
+    if (!earnings.length) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="7"><div class="state-msg">No se encontraron earnings para el período seleccionado.</div></td></tr>';
+      return;
+    }
+
+    allData = earnings.map(e => ({
+      symbol: e.symbol || '—',
+      name: e.company || e.symbol || '—',
+      date: e.date,
+      time: e.hour,
+      epsEst: e.epsEstimate,
+      epsActual: e.epsActual,
+      revEst: e.revenueEstimate ? (e.revenueEstimate / 1e9).toFixed(2) : null,
+      lastMove: e.surprisePercent || null,
+      sentiment: getSentiment(e.epsEstimate, e.epsActual),
+      sector: SECTORS[e.symbol] || '—'
+    }));
+
+    document.getElementById('lastUpdate').textContent = 'Actualizado: ' + new Date().toLocaleTimeString('es-ES');
+    page = 1;
+    renderTable();
+  } catch(err) {
+    document.getElementById('tableBody').innerHTML = `<tr><td colspan="7"><div class="state-msg error-msg">Error: ${err.message}<br><small>Verifica tu API key o conexión a internet.</small></div></td></tr>`;
+  }
+}
+
+function getFiltered() {
+  const q = document.getElementById('search').value.toLowerCase();
+  return allData.filter(r => !q || r.symbol.toLowerCase().includes(q) || r.name.toLowerCase().includes(q))
+    .sort((a, b) => {
+      let va = a[sortKey], vb = b[sortKey];
+      if (sortKey === 'date') { va = new Date(va); vb = new Date(vb); }
+      if (va == null) return 1; if (vb == null) return -1;
+      if (typeof va === 'string') return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va);
+      return sortAsc ? va - vb : vb - va;
+    });
+}
+
+function sortBy(key) {
+  sortKey = (sortKey === key) ? sortKey : key;
+  sortAsc = (sortKey === key) ? !sortAsc : true;
+  sortKey = key;
+  renderTable();
+}
+
+function renderTable() {
+  const filtered = getFiltered();
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if (page > totalPages) page = 1;
+  const rows = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const today = new Date().toISOString().split('T')[0];
+
+  const bullish = filtered.filter(r => r.sentiment === 'bullish').length;
+  const bearish = filtered.filter(r => r.sentiment === 'bearish').length;
+  const withEps = filtered.filter(r => r.epsEst != null).length;
+
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat"><div class="stat-label">Total empresas</div><div class="stat-val">${total}</div></div>
+    <div class="stat"><div class="stat-label">Batieron est.</div><div class="stat-val green">${bullish}</div></div>
+    <div class="stat"><div class="stat-label">Defraudaron</div><div class="stat-val red">${bearish}</div></div>
+    <div class="stat"><div class="stat-label">Con EPS estimado</div><div class="stat-val">${withEps}</div></div>
+    <div class="stat"><div class="stat-label">Página</div><div class="stat-val">${page}/${totalPages}</div></div>
+  `;
+
+  document.getElementById('pageInfo').textContent = `Pág. ${page} de ${totalPages}`;
+  document.getElementById('countInfo').textContent = `${total} empresas encontradas`;
+
+  if (!rows.length) {
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="7"><div class="state-msg">Sin resultados para tu búsqueda.</div></td></tr>';
+    return;
+  }
+
+  document.getElementById('tableBody').innerHTML = rows.map(r => {
+    const isToday = r.date === today;
+    const v = getVariation(r.lastMove);
+    const mv = r.lastMove != null
+      ? (r.lastMove >= 0 ? `<span class="up">▲ ${Math.abs(r.lastMove).toFixed(1)}%</span>` : `<span class="down">▼ ${Math.abs(r.lastMove).toFixed(1)}%</span>`)
+      : '<span class="neutral-val">—</span>';
+    const sent = r.sentiment === 'bullish'
+      ? '<span class="sent-bull">▲ Positiva</span>'
+      : r.sentiment === 'bearish'
+      ? '<span class="sent-bear">▼ Negativa</span>'
+      : '<span class="sent-neut">— Neutral</span>';
+    const epsLine = r.epsEst != null ? `<div class="eps-sub">EPS est: $${Number(r.epsEst).toFixed(2)}</div>` : '';
+    const revLine = r.revEst != null ? `<div class="eps-sub">Rev est: $${r.revEst}B</div>` : '';
+    const dateCell = isToday
+      ? `<span style="color:var(--accent);font-family:'DM Mono',monospace;">${fmtDate(r.date)}</span><span class="today-badge">HOY</span>`
+      : `<span style="font-family:'DM Mono',monospace;font-size:12px;">${fmtDate(r.date)}</span>`;
+    return `<tr class="${isToday ? 'today-row' : ''}">
+      <td><div class="ticker">${r.symbol}</div><div class="co-name">${r.name}</div></td>
+      <td>${dateCell}</td>
+      <td>${timeBadge(r.time)}</td>
+      <td>${mv}</td>
+      <td><div class="eps-block">${sent}${epsLine}${revLine}</div></td>
+      <td><div class="var-block">
+        <div class="var-row var-pos">▲ Si bate: ${v.pos}</div>
+        <div class="var-row var-neg">▼ Si defrauda: ${v.neg}</div>
+      </div></td>
+      <td><span style="font-size:11px;color:var(--muted);">${r.sector}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function prevPage() { if (page > 1) { page--; renderTable(); } }
+function nextPage() { if (page < Math.ceil(getFiltered().length / PER_PAGE)) { page++; renderTable(); } }
+
+loadData();
+</script>
+</body>
+</html>
