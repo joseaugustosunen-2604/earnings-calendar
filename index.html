@@ -156,10 +156,11 @@
 
   <div class="filters2">
     <span class="filter-label">Filtrar:</span>
-    <select id="sizeFilter" onchange="renderTable()">
+    <select id="sizeFilter" onchange="onSizeFilterChange()">
       <option value="">Large + Mid Cap</option>
       <option value="large">Solo Large Cap</option>
       <option value="mid">Solo Mid Cap</option>
+      <option value="small_smart">Small Cap con datos (oportunidades)</option>
     </select>
     <select id="sectorFilter" onchange="renderTable()">
       <option value="">Todos los sectores</option>
@@ -228,8 +229,8 @@
   </div>
 
   <div style="margin-top:.75rem;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;line-height:2;">
-    Solo se muestran Large Cap y Mid Cap · PRE = antes 09:30 NY · POST = tras 16:30 NY · ⚠ precio movió >5% en 5d (riesgo "comprar el rumor")<br>
-    Datos: Finnhub API · No constituye recomendación de inversión.
+    Por defecto: Large + Mid Cap · Small Cap con datos disponible en el filtro de tamaño · PRE = antes 09:30 NY · POST = tras 16:30 NY · ⚠ precio movió >5% en 5d<br>
+    Small Cap filtradas: solo con EPS estimado y revenue >$50M · Datos: Finnhub API · No constituye recomendación de inversión.
   </div>
 </div>
 
@@ -519,7 +520,10 @@ async function toggleExpand(symbol,rowId){
 }
 
 async function loadData(){
-  document.getElementById('tableBody').innerHTML='<tr><td colspan="9"><div class="state-msg"><div class="spinner"></div><br>Cargando datos...<div class="loading-sub">Filtrando Large & Mid Cap · Enriqueciendo con historial y tendencias...</div></div></td></tr>';
+  const sizeVal=document.getElementById('sizeFilter').value;
+  const includeSmall=sizeVal==='small_smart';
+
+  document.getElementById('tableBody').innerHTML=`<tr><td colspan="9"><div class="state-msg"><div class="spinner"></div><br>Cargando datos...<div class="loading-sub">${includeSmall?'Buscando Small Caps con datos reales...':'Filtrando Large & Mid Cap · Enriqueciendo con historial y tendencias...'}</div></div></td></tr>`;
   document.getElementById('statsBar').innerHTML='<div class="stat"><div class="stat-label">Estado</div><div class="stat-val" style="font-size:14px;">Cargando...</div></div>';
   expandedRow=null;
 
@@ -528,7 +532,17 @@ async function loadData(){
     const res=await fetch(`https://finnhub.io/api/v1/calendar/earnings?from=${from}&to=${to}&token=${API_KEY}`);
     if(!res.ok)throw new Error('Error HTTP '+res.status);
     const json=await res.json();
-    const earnings=(json.earningsCalendar||[]).filter(e=>getSize(e.symbol)!=='small');
+    const earnings=(json.earningsCalendar||[]).filter(e=>{
+      const size=getSize(e.symbol);
+      if(includeSmall){
+        // Solo small caps con EPS estimado y revenue > 0
+        if(size!=='small') return false;
+        if(!e.epsEstimate) return false;
+        if(e.revenueEstimate && e.revenueEstimate < 50e6) return false;
+        return true;
+      }
+      return size!=='small';
+    });
 
     if(!earnings.length){
       document.getElementById('tableBody').innerHTML='<tr><td colspan="9"><div class="state-msg">No se encontraron Large/Mid Cap earnings para el período.</div></td></tr>';
@@ -566,6 +580,8 @@ async function loadData(){
 
 function clearFilters(){['sizeFilter','sectorFilter','statusFilter','dataFilter'].forEach(id=>document.getElementById(id).value='');document.getElementById('search').value='';renderTable();}
 
+function onSizeFilterChange(){loadData();}
+
 function getFiltered(){
   const q=document.getElementById('search').value.toLowerCase();
   const size=document.getElementById('sizeFilter').value;
@@ -574,7 +590,9 @@ function getFiltered(){
   const data=document.getElementById('dataFilter').value;
   return allData.filter(r=>{
     if(q&&!r.symbol.toLowerCase().includes(q)&&!r.name.toLowerCase().includes(q))return false;
-    if(size&&r.size!==size)return false;
+    if(size==='large'&&r.size!=='large')return false;
+    if(size==='mid'&&r.size!=='mid')return false;
+    // small_smart ya filtrado en loadData
     if(sector&&r.sector!==sector)return false;
     if(status==='pending'&&r.isPublished)return false;
     if(status==='published'&&!r.isPublished)return false;
