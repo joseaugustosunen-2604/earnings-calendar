@@ -324,36 +324,53 @@ function getVariation(lastMove,symbol,sector,historicalVol){
   return{pos:'+'+base.toFixed(1)+'%'+src,neg:'-'+(base*0.75).toFixed(1)+'%'+src,base};
 }
 
-// FINNHUB FETCHERS
 // OPPORTUNITY SCORES — Manual analysis May 2026
 const SCORES = {
-  URBN:{score:9,label:'Joya oculta',reason:'0 deuda · P/E 13x · ROE 18% · crecimiento 11%'},
-  CPRT:{score:9,label:'Rebote potencial',reason:'Cayó 46% · $5.1B caja · sin deuda · objetivo $43-45 vs $33'},
-  MDB:{score:8,label:'AI growth play',reason:'EPS +30% anual · Atlas momentum · bien posicionado en AI'},
-  ZS:{score:8,label:'Ciberseg. sólida',reason:'Top pick BTIG · rev. growth 15-16% · líder zero-trust'},
-  WSM:{score:8,label:'Quality retail',reason:'Márgenes altos · dividend creciente · marca premium'},
-  WDAY:{score:7,label:'Sólido pero caro',reason:'SaaS líder RRHH · FCF fuerte · valoración ajustada'},
-  ADSK:{score:7,label:'Valor estable',reason:'CAD/BIM dominante · modelo suscripción · márgenes altos'},
-  HQY:{score:7,label:'GARP interesante',reason:'45% descuento intrinsic · rev +7% · net income +19%'},
-  BURL:{score:7,label:'Retail defensivo',reason:'Off-price resiliente · expansión tiendas · márgenes mejorando'},
-  ROST:{score:6,label:'Maduro, poco upside',reason:'Sólido pero ya en precio justo · poco catalizador'},
-  SNOW:{score:6,label:'Caro vs competencia',reason:'EPS crece 44% pero P/S 12.6x · presión competidores'},
-  BAH:{score:6,label:'Riesgo DOGE',reason:'Contratos gobierno AI · riesgo recorte presupuesto federal'},
-  DECK:{score:6,label:'Sin catalizador',reason:'UGG/HOKA buenos · valoración justa · sin sorpresas esperadas'},
-  ZM:{score:5,label:'Crecimiento estancado',reason:'Rev plana · mercado saturado · perdiendo vs Teams/Meet'},
-  DLTR:{score:4,label:'Sobrevalorado',reason:'Cotiza sobre valor intrínseco · problemas estructurales · separación Family Dollar'},
+  // LARGE CAP
+  NVDA:{score:9,label:'AI dominante',reason:'Rev +65% · EPS +120% esperado · objetivo $275-285 · 61 analistas Strong Buy · orden book $1T hasta 2027'},
+  ADI:{score:9,label:'Semiconductor sólido',reason:'Rev +30% YoY · margen bruto 71.2% · margen operativo 45.5% · EPS +56% Q2 esperado · dividendo creciente'},
+  TJX:{score:8,label:'Off-price resiliente',reason:'Strong Buy consenso · objetivo $169 vs $146 · 7% upside · beneficiario entorno macro difícil'},
+  INTU:{score:7,label:'Caída = oportunidad',reason:'Cayó 41% en 6 meses · rev +17% · AI integrado en productos · QuickBooks+TurboTax dominantes'},
+  WMT:{score:7,label:'Sólido pero caro',reason:'Market share creciendo · ecommerce boom · P/E 50x forward = priced to perfection · poco margen error'},
+  DE:{score:7,label:'Industrial defensivo',reason:'Líder maquinaria agrícola · ciclo estable · márgenes sanos · valoración justa'},
+  LOW:{score:7,label:'Home improvement sólido',reason:'Comparable a HD · beneficiario reforma del hogar · fundamentales sanos · valoración razonable'},
+  // MID CAP
+  URBN:{score:9,label:'Joya oculta',reason:'0 deuda · P/E 13x · ROE 18% · crecimiento 11% · Piotroski F-Score 8/10 · muy barato para su calidad'},
+  CPRT:{score:9,label:'Rebote potencial',reason:'Cayó 46% por factores temporales · $5.1B caja · sin deuda · objetivo analistas $43-45 vs ~$33'},
+  MDB:{score:8,label:'AI growth play',reason:'EPS +30% anual · Atlas momentum fuerte · arquitectura ventajosa para AI · P/S 11.4x razonable vs SNOW'},
+  ZS:{score:8,label:'Ciberseg. sólida',reason:'Top pick BTIG para 2026 · rev growth 15-16% · líder zero-trust · demanda secular creciente'},
+  WSM:{score:8,label:'Quality retail',reason:'Márgenes altos · dividend creciente · marca premium · home décor resiliente · sin deuda relevante'},
+  WDAY:{score:7,label:'Sólido pero caro',reason:'SaaS líder RRHH · FCF fuerte · valoración ajustada · crecimiento moderándose hacia 15%'},
+  ADSK:{score:7,label:'Valor estable',reason:'CAD/BIM dominante · modelo suscripción · márgenes altos · sin catalizador inmediato'},
+  HQY:{score:7,label:'GARP interesante',reason:'45% descuento valor intrínseco · rev +7% · net income +19% · HSA líder de mercado en EE.UU.'},
+  BURL:{score:7,label:'Retail defensivo',reason:'Off-price resiliente · expansión agresiva de tiendas · márgenes mejorando · consumidor cauteloso beneficia'},
+  ROST:{score:6,label:'Maduro, poco upside',reason:'Modelo probado y sólido · pero ya en precio justo · sin catalizador nuevo · crecimiento moderado'},
+  SNOW:{score:6,label:'Caro vs competencia',reason:'EPS crece 44% pero P/S 12.6x · presión creciente de hyperscalers · competencia de AWS/GCP'},
+  BAH:{score:6,label:'Riesgo DOGE',reason:'Fuerte en contratos gobierno AI · pero riesgo real de recorte presupuesto federal · incertidumbre política'},
+  DECK:{score:6,label:'Sin catalizador claro',reason:'UGG y HOKA con buen momentum · valoración justa · temporada verano débil para UGG'},
+  ZM:{score:5,label:'Crecimiento estancado',reason:'Revenue plana · mercado saturado post-COVID · perdiendo cuota vs Teams/Meet · sin diferenciador claro'},
+  DLTR:{score:4,label:'Evitar por ahora',reason:'Cotiza sobre valor intrínseco · problemas estructurales · separación Family Dollar compleja · márgenes bajo presión'},
 };
 
-function getScoreHTML(symbol) {
+function getScoreHTML(symbol, analystRec) {
   const s = SCORES[symbol];
-  if (!s) return '<span style="color:var(--muted);font-size:10px;">—</span>';
-  const col = s.score >= 8 ? 'var(--green)' : s.score >= 6 ? 'var(--amber)' : 'var(--red)';
-  const dot = s.score >= 8 ? '🟢' : s.score >= 6 ? '🟡' : '🔴';
-  return `<div style="display:flex;flex-direction:column;gap:2px;">
-    <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${col};">${dot} ${s.score}/10</div>
-    <div style="font-size:10px;color:${col};opacity:.85;">${s.label}</div>
-  </div>`;
+  if (s) {
+    const col = s.score >= 8 ? 'var(--green)' : s.score >= 6 ? 'var(--amber)' : 'var(--red)';
+    const dot = s.score >= 8 ? '🟢' : s.score >= 6 ? '🟡' : '🔴';
+    return `<div style="display:flex;flex-direction:column;gap:2px;">
+      <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:600;color:${col};">${dot} ${s.score}/10</div>
+      <div style="font-size:10px;color:${col};opacity:.85;">${s.label}</div>
+    </div>`;
+  }
+  // Fallback: mostrar consenso de analistas de Finnhub
+  if (analystRec) {
+    const col = analystRec.cls === 'tag-strong-buy' || analystRec.cls === 'tag-buy' ? 'var(--green)' : analystRec.cls === 'tag-hold' ? 'var(--amber)' : 'var(--red)';
+    return `<div style="font-size:10px;color:${col};">📊 ${analystRec.label}</div>`;
+  }
+  return '<span style="color:var(--muted);font-size:10px;">—</span>';
 }
+
+// FINNHUB FETCHERS
 
 async function fetchHistory(symbol){
   if(cache[symbol]!==undefined)return cache[symbol];
@@ -635,7 +652,7 @@ function renderTable(){
       <td>${trendBlock(r.trend5d)}</td>
       <td><div class="eps-block"><span class="${sentClass}">${sentLabel}</span>${epsLine}${revLine}</div></td>
       <td><div class="var-block"><div class="var-row var-pos">▲ ${v.pos}</div><div class="var-row var-neg">▼ ${v.neg}</div></div></td>
-      <td>${getScoreHTML(r.symbol)}</td>
+      <td>${getScoreHTML(r.symbol, getRecommendationLabel(targetCache[r.symbol]||null))}</td>
     </tr>
     <tr class="expand-row">
       <td colspan="9"><div class="expand-panel" id="panel-${rowId}"><div class="expand-inner" id="panel-inner-${rowId}"></div></div></td>
